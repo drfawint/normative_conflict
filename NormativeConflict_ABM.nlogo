@@ -160,7 +160,9 @@ to-report avg-payoff-equality
   if not any? turtles with [norm-type = "equality"] [ report 0 ]
   report mean [my-payoff] of turtles with [norm-type = "equality"]
 end
-@#$#@#$#@GRAPHICS-WINDOW
+
+@#$#@#$#@
+GRAPHICS-WINDOW
 210
 10
 648
@@ -489,7 +491,9 @@ true
 PENS
 "equity" 1.0 0 -11221820 true "" "plot avg-payoff-equity"
 "equality" 1.0 0 -955883 true "" "plot avg-payoff-equality"
-@#$#@#$#@## NORMATIVE CONFLICT
+
+@#$#@#$#@
+## NORMATIVE CONFLICT
 
 Agent-based model of equity vs. equality norms in the Ultimatum Game.
 
@@ -507,17 +511,34 @@ Agent-based model of equity vs. equality norms in the Ultimatum Game.
 Rauhut and Winter (2011) Social Science Research
 Winter, Rauhut and Helbing (2012) Social Forces
 Rauhut and Winter (2017) De Gruyter
-@#$#@#$#@turtles-default
+
+@#$#@#$#@
+turtles-default
 0
 -270 120 -210 -30 -150 120
 0
 false
 0
 Polygon -7500403 true true 150 5 40 250 150 205 260 250
-@#$#@#$#@NetLogo 6.4.0@#$#@#$#@@#$#@#$#@@#$#@#$#@@#$#@#$#@@#$#@#$#@@#$#@#$#@default
+
+@#$#@#$#@
+NetLogo 6.4.0
+@#$#@#$#@
+
+@#$#@#$#@
+
+@#$#@#$#@
+
+@#$#@#$#@
+
+@#$#@#$#@
+
+@#$#@#$#@
+default
 0.0
 true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
+
 @#$#@#$#@
