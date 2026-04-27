@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Normative Conflict – Agent Based Model</title>
+  <style>
+    :root {
+      --blue:   #1a4a8a;
+      --cyan:   #00b4d8;
+      --orange: #e07b39;
+      --bg:     #f7f8fa;
+      --card:   #ffffff;
+      --text:   #1e2a3a;
+      --muted:  #6b7a90;
+      --radius: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ---- Header ---- */
+    header {
+      background: var(--blue);
+      color: white;
+      padding: 2rem 2rem 1.5rem;
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
+    header p  { font-size: 0.95rem; opacity: 0.8; }
+    header .refs {
+      margin-top: 0.8rem;
+      font-size: 0.82rem;
+      opacity: 0.7;
+      font-style: italic;
+    }
+
+    /* ---- Layout ---- */
+    .page { max-width: 1300px; margin: 0 auto; padding: 1.5rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* ---- Model iframe ---- */
+    .model-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+    .model-card h2 {
+      background: var(--blue);
+      color: white;
+      padding: 0.7rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .model-card h2 span { font-size: 1.1rem; }
+    iframe#netlogo {
+      width: 100%;
+      height: 700px;
+      border: none;
+      display: block;
+    }
+    .model-fallback {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .model-fallback a {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.6rem 1.4rem;
+      background: var(--blue);
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .model-fallback a:hover { opacity: 0.85; }
+
+    /* ---- Sidebar cards ---- */
+    .sidebar { display: flex; flex-direction: column; gap: 1.2rem; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      padding: 1.1rem 1.2rem;
+    }
+    .card h3 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--blue);
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--bg);
+    }
+
+    /* ---- Norm legend ---- */
+    .legend { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.88rem;
+    }
+    .dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.cyan   { background: var(--cyan); }
+    .dot.orange { background: var(--orange); }
+
+    /* ---- Parameter table ---- */
+    .param-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .param-table th {
+      text-align: left;
+      padding: 0.3rem 0.4rem;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+    .param-table td { padding: 0.3rem 0.4rem; vertical-align: top; }
+    .param-table tr:nth-child(even) td { background: var(--bg); }
+    code {
+      font-family: 'Courier New', monospace;
+      background: var(--bg);
+      padding: 0 4px;
+      border-radius: 3px;
+      font-size: 0.83em;
+    }
+
+    /* ---- Hypotheses ---- */
+    .hypo-list { list-style: none; }
+    .hypo-list li {
+      display: flex;
+      gap: 0.7rem;
+      padding: 0.5rem 0;
+      font-size: 0.87rem;
+      border-bottom: 1px solid var(--bg);
+    }
+    .hypo-list li:last-child { border-bottom: none; }
+    .hypo-num {
+      background: var(--blue);
+      color: white;
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ---- Open in new tab button ---- */
+    .open-btn {
+      display: block;
+      text-align: center;
+      padding: 0.65rem 1rem;
+      background: var(--blue);
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    .open-btn:hover { opacity: 0.85; }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Normative Conflict &mdash; Agent Based Model</h1>
+  <p>Equity vs. Equality norms in the Ultimatum Game &middot; University of Zurich, Institute of Sociology</p>
+  <p class="refs">
+    Rauhut &amp; Winter (2011) Social Science Research &middot;
+    Winter, Rauhut &amp; Helbing (2012) Social Forces &middot;
+    Rauhut &amp; Winter (2017) De Gruyter
+  </p>
+</header>
+
+<div class="page">
+  <div class="grid">
+
+    <!-- Model -->
+    <div class="model-card">
+      <h2><span>⚙</span> Interactive Simulation (NetLogo Web)</h2>
+      <iframe
+        id="netlogo"
+        src="https://netlogoweb.org/web?url=https://raw.githubusercontent.com/drfawint/normative_conflict/main/NormativeConflict_ABM.nlogo"
+        allowfullscreen
+        title="NetLogo ABM: Normative Conflict"
+      ></iframe>
+      <div class="model-fallback" id="fallback" style="display:none">
+        <p>Could not load the embedded simulation.<br>Open it directly in NetLogo Web:</p>
+        <a href="https://netlogoweb.org/web?url=https://raw.githubusercontent.com/drfawint/normative_conflict/main/NormativeConflict_ABM.nlogo"
+           target="_blank" rel="noopener">
+          Open in NetLogo Web ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Open standalone -->
+      <div class="card">
+        <h3>Run standalone</h3>
+        <a class="open-btn"
+           href="https://netlogoweb.org/web?url=https://raw.githubusercontent.com/drfawint/normative_conflict/main/NormativeConflict_ABM.nlogo"
+           target="_blank" rel="noopener">
+          Open full screen in NetLogo Web ↗
+        </a>
+        <a class="open-btn" style="background:#2d7a2d; margin-top:0.4rem"
+           href="NormativeConflict_ABM.nlogo" download>
+          Download .nlogo file ↓
+        </a>
+      </div>
+
+      <!-- Norm legend -->
+      <div class="card">
+        <h3>Agent Types</h3>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot cyan"></div>
+            <span><strong>Cyan</strong> — Equity norm<br><small>Distribute proportional to effort</small></span>
+          </div>
+          <div class="legend-item">
+            <div class="dot orange"></div>
+            <span><strong>Orange</strong> — Equality norm<br><small>Always split 50/50</small></span>
+          </div>
+        </div>
+        <p style="margin-top:0.7rem; font-size:0.83rem; color:var(--muted)">
+          Agent size scales with accumulated payoff.
+        </p>
+      </div>
+
+      <!-- Parameters -->
+      <div class="card">
+        <h3>Key Parameters</h3>
+        <table class="param-table">
+          <thead>
+            <tr><th>Slider</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>pct-equity-agents</code></td><td>% of equity-norm agents</td></tr>
+            <tr><td><code>effort-inequality</code></td><td>Heterogeneity of contributions (0 = equal)</td></tr>
+            <tr><td><code>tolerance-threshold</code></td><td>Base tolerance for deviating offers</td></tr>
+            <tr><td><code>norm-update-rate</code></td><td>Speed of norm copying</td></tr>
+            <tr><td><code>punishment-cost</code></td><td>Cost imposed on rejected proposer</td></tr>
+            <tr><td><code>norm-learning?</code></td><td>Enable replicator dynamics</td></tr>
+            <tr><td><code>punishment-on?</code></td><td>Enable punishment of rejected proposers</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Hypotheses -->
+      <div class="card">
+        <h3>Hypotheses to Test</h3>
+        <ul class="hypo-list">
+          <li>
+            <div class="hypo-num">1</div>
+            <span>Higher <code>effort-inequality</code> → more normative conflicts (H1)</span>
+          </li>
+          <li>
+            <div class="hypo-num">2</div>
+            <span>Punishment only effective when norms are homogeneous (H2)</span>
+          </li>
+          <li>
+            <div class="hypo-num">3</div>
+            <span>With norm learning, one norm eventually dominates (H3)</span>
+          </li>
+          <li>
+            <div class="hypo-num">4</div>
+            <span>More content conflicts than commitment conflicts in mixed populations</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  Prof. Dr. Heiko Rauhut &middot; University of Zurich, Institute of Sociology &middot;
+  <a href="https://github.com/drfawint/normative_conflict" style="color:inherit">GitHub</a>
+</footer>
+
+</body>
+</html>
