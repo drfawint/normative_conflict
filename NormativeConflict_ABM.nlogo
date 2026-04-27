@@ -513,13 +513,6 @@ Winter, Rauhut and Helbing (2012) Social Forces
 Rauhut and Winter (2017) De Gruyter
 
 @#$#@#$#@
-turtles-default
-0
--270 120 -210 -30 -150 120
-0
-false
-0
-Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
 @#$#@#$#@
 NetLogo 6.4.0
@@ -534,11 +527,5 @@ NetLogo 6.4.0
 @#$#@#$#@
 
 @#$#@#$#@
-default
-0.0
-true
-0
-Line -7500403 true 150 150 90 180
-Line -7500403 true 150 150 210 180
 
 @#$#@#$#@
