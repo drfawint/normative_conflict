@@ -3,8 +3,6 @@
   <code><![CDATA[;; ============================================================
 ;; NORMATIVE CONFLICT - Agent Based Model
 ;; Winter, Rauhut & Helbing (2012) Social Forces
-;; Rauhut & Winter (2017) De Gruyter
-;; Winter, Rauhut & Miller (2018) J. Behavioral & Experimental Economics
 ;; ============================================================
 
 globals [
