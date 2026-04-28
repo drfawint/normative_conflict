@@ -80348,8 +80348,8 @@ to adjust-effort-after-outcome [actual-share normative-share]
 end
 
 to maybe-random-shock
-  if random-float 1 < 0.05 [
-    set my-payoff my-payoff - 2
+  if random-float 1 < random-shock-prob [
+    set my-payoff my-payoff - random-shock-loss
   ]
 end
 
@@ -80448,10 +80448,12 @@ end]]></code>
     <slider x="15" step="5" y="124" max="100" width="190" display="pct-equity-agents" height="50" min="0" direction="Horizontal" default="50" variable="pct-equity-agents" units="%"></slider>
     <slider x="15" step="0.1" y="181" max="1" width="190" display="effort-inequality" height="50" min="0" direction="Horizontal" default="0.5" variable="effort-inequality"></slider>
     <slider x="15" step="0.05" y="238" max="1" width="190" display="tolerance-threshold" height="50" min="0" direction="Horizontal" default="0.3" variable="tolerance-threshold"></slider>
-    <slider x="15" step="100" y="335" max="5000" width="190" display="max-ticks" height="50" min="100" direction="Horizontal" default="1000" variable="max-ticks"></slider>
-    <switch x="15" y="412" height="40" on="true" variable="norm-learning?" width="190" display="norm-learning?"></switch>
-    <switch x="15" y="459" height="40" on="false" variable="reputation?" width="190" display="reputation?"></switch>
-    <switch x="15" y="506" height="40" on="false" variable="conformity-pressure?" width="190" display="conformity-pressure?"></switch>
+    <slider x="15" step="0.01" y="295" max="1" width="190" display="random-shock-prob" height="50" min="0" direction="Horizontal" default="0.05" variable="random-shock-prob"></slider>
+    <slider x="15" step="0.5" y="352" max="10" width="190" display="random-shock-loss" height="50" min="0" direction="Horizontal" default="2" variable="random-shock-loss"></slider>
+    <slider x="15" step="100" y="409" max="5000" width="190" display="max-ticks" height="50" min="100" direction="Horizontal" default="1000" variable="max-ticks"></slider>
+    <switch x="15" y="476" height="40" on="true" variable="norm-learning?" width="190" display="norm-learning?"></switch>
+    <switch x="15" y="523" height="40" on="false" variable="reputation?" width="190" display="reputation?"></switch>
+    <switch x="15" y="570" height="40" on="false" variable="conformity-pressure?" width="190" display="conformity-pressure?"></switch>
     <plot x="1010" autoPlotX="true" yMax="200" autoPlotY="true" yAxis="count" y="10" xMin="0" height="192" legend="true" xMax="100" yMin="0" width="250" xAxis="ticks" display="Living Agents">
       <setup></setup>
       <update></update>
@@ -80549,10 +80551,12 @@ The most important parameters for substantive experiments are:
 - `norm-learning?`: whether agents adapt to locally more successful norms
 - `conformity-pressure?`: whether agents adapt to locally more common norms
 - `reputation?`: whether a good reputation makes offers easier to accept
+- `random-shock-prob`: probability of a negative exogenous shock
+- `random-shock-loss`: size of the payoff loss when a shock occurs
 
 Additional controls exist for shocks, death, effort adaptation, and payoff accumulation, but these are secondary compared to the parameters above.
 In the current classroom version, these secondary mechanisms are fixed internally rather than exposed as interface controls.
-Fixed defaults: interaction radius `3`, social radius `5`, norm update rate `0.1`, shock probability `0.05`, shock loss `2`, death threshold `-5`, effort adaptation on, payoff accumulation on.
+Fixed defaults: interaction radius `3`, social radius `5`, norm update rate `0.1`, death threshold `-5`, effort adaptation on, payoff accumulation on.
 
 ### Reading the outputs
 
