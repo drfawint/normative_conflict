@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="utf-8"?>
+<model version="NetLogo 7.0.3" snapToGrid="false">
+  <code><![CDATA[;; ============================================================
+;; NORMATIVE CONFLICT - Agent Based Model
+;; Winter, Rauhut & Helbing (2012) Social Forces
+;; Rauhut & Winter (2017) De Gruyter
+;; Winter, Rauhut & Miller (2018) J. Behavioral & Experimental Economics
+;; ============================================================
+
+globals [
+  conflict-count
+  cooperation-count
+  total-interactions
+]
+
+turtles-own [
+  norm-type
+  commitment
+  effort
+  my-payoff
+  my-rejections
+  my-cooperations
+  reputation-score
+]
+
+to setup
+  clear-all
+  set conflict-count 0
+  set cooperation-count 0
+  set total-interactions 0
+  create-turtles num-agents [
+    setxy random-xcor random-ycor
+    set effort 1 + random-float (1 + effort-inequality * 8)
+    set commitment 0.3 + random-float 0.7
+    set my-payoff 0
+    set my-rejections 0
+    set my-cooperations 0
+    set reputation-score 0
+    assign-norm
+  ]
+  reset-ticks
+end
+
+to assign-norm
+  ifelse random 100 < pct-equity-agents [
+    set norm-type "equity"
+    set color cyan
+  ][
+    set norm-type "equality"
+    set color orange
+  ]
+  set size 1.5
+end
+
+to go
+  if ticks >= max-ticks [ stop ]
+  ask turtles [
+    let partner one-of other turtles with [distance myself <= 3]
+    if partner != nobody [
+      play-ultimatum-game self partner
+    ]
+    maybe-random-shock
+    maybe-die-from-poverty
+    if norm-learning? [ maybe-update-norm ]
+    if conformity-pressure? [ maybe-conform-to-neighbors ]
+    rt random 45 - random 45
+    fd 0.3
+  ]
+  if any? turtles [
+    let max-pay max [my-payoff] of turtles
+    if max-pay > 0 [
+      ask turtles [ set size 0.5 + 2.0 * (my-payoff / max-pay) ]
+    ]
+  ]
+  tick
+end
+
+to play-ultimatum-game [proposer responder]
+  let ep [effort] of proposer
+  let er [effort] of responder
+  let joint ep + er
+  let offer compute-offer proposer responder joint
+  let accepted? will-accept proposer responder offer joint
+  let proposer-expected expected-share proposer ep er joint
+  let responder-expected expected-share responder er ep joint
+  set total-interactions total-interactions + 1
+  ifelse accepted? [
+    ask proposer [
+      set my-payoff my-payoff + (joint - offer)
+      set my-cooperations my-cooperations + 1
+      update-reputation 0.06
+      adjust-effort-after-outcome (joint - offer) proposer-expected
+    ]
+    ask responder [
+      set my-payoff my-payoff + offer
+      set my-cooperations my-cooperations + 1
+      update-reputation 0.03
+      adjust-effort-after-outcome offer responder-expected
+    ]
+    set cooperation-count cooperation-count + 1
+  ][
+    ask proposer [
+      set my-rejections my-rejections + 1
+      update-reputation -0.12
+      adjust-effort-after-outcome 0 proposer-expected
+    ]
+    ask responder [
+      set my-rejections my-rejections + 1
+      update-reputation -0.02
+      adjust-effort-after-outcome 0 responder-expected
+    ]
+    set conflict-count conflict-count + 1
+  ]
+end
+
+to-report compute-offer [proposer responder joint]
+  let er [effort] of responder
+  let ep [effort] of proposer
+  ifelse [norm-type] of proposer = "equity" [
+    report joint * (er / (ep + er))
+  ][
+    report joint * 0.5
+  ]
+end
+
+to-report will-accept [proposer responder offer joint]
+  let er [effort] of responder
+  let ep joint - er
+  let total-e ep + er
+  let expected ifelse-value ([norm-type] of responder = "equity") [
+    joint * (er / total-e)
+  ][
+    joint * 0.5
+  ]
+  let deviation abs(offer - expected) / joint
+  let threshold tolerance-threshold * (1 - [commitment] of responder)
+  if reputation? [
+    set threshold threshold + ([reputation-score] of proposer * 0.20)
+  ]
+  set threshold max list 0.01 (min list 0.99 threshold)
+  report deviation <= threshold
+end
+
+to-report expected-share [agent own-effort other-effort joint]
+  ifelse [norm-type] of agent = "equity" [
+    report joint * (own-effort / (own-effort + other-effort))
+  ][
+    report joint * 0.5
+  ]
+end
+
+to adjust-effort-after-outcome [actual-share normative-share]
+  if actual-share >= normative-share [
+    set effort min list 10 (effort * 1.05)
+  ]
+  if actual-share < normative-share [
+    set effort max list 0.1 (effort * 0.95)
+  ]
+end
+
+to maybe-random-shock
+  if random-float 1 < 0.05 [
+    set my-payoff my-payoff - 2
+  ]
+end
+
+to maybe-die-from-poverty
+  if my-payoff <= -5 [
+    die
+  ]
+end
+
+to maybe-update-norm
+  let neighbors-near other turtles with [distance myself <= 5]
+  if any? neighbors-near [
+    let equity-neighbors neighbors-near with [norm-type = "equity"]
+    let equality-neighbors neighbors-near with [norm-type = "equality"]
+    let equity-avg ifelse-value any? equity-neighbors [mean [my-payoff] of equity-neighbors] [-1000000]
+    let equality-avg ifelse-value any? equality-neighbors [mean [my-payoff] of equality-neighbors] [-1000000]
+    let target-norm norm-type
+    let target-payoff my-payoff
+    if equity-avg > target-payoff [
+      set target-norm "equity"
+      set target-payoff equity-avg
+    ]
+    if equality-avg > target-payoff [
+      set target-norm "equality"
+      set target-payoff equality-avg
+    ]
+    if target-norm != norm-type [
+      if random-float 1 < 0.1 [
+        set norm-type target-norm
+        set commitment max list 0 (min list 1 (commitment + random-normal 0 0.05))
+        update-color
+      ]
+    ]
+  ]
+end
+
+to maybe-conform-to-neighbors
+  let neighbors-near other turtles with [distance myself <= 5]
+  if any? neighbors-near [
+    let equity-share count neighbors-near with [norm-type = "equity"] / count neighbors-near
+    let majority-norm ifelse-value (equity-share >= 0.5) [ "equity" ] [ "equality" ]
+    let majority-share ifelse-value (majority-norm = "equity") [ equity-share ] [ 1 - equity-share ]
+    if majority-norm != norm-type and majority-share > 0.55 [
+      let switch-probability (majority-share - 0.5) * 1.2 * (1 - commitment)
+      if random-float 1 < switch-probability [
+        set norm-type majority-norm
+        set commitment max list 0 (commitment - 0.05)
+        update-color
+      ]
+    ]
+  ]
+end
+
+to update-reputation [delta]
+  set reputation-score max list -1 (min list 1 (reputation-score + delta))
+end
+
+to update-color
+  ifelse norm-type = "equity" [ set color cyan ] [ set color orange ]
+end
+
+to-report pct-equity-now
+  if count turtles = 0 [ report 0 ]
+  report 100 * count turtles with [norm-type = "equity"] / count turtles
+end
+
+to-report conflict-rate
+  if total-interactions = 0 [ report 0 ]
+  report 100 * conflict-count / total-interactions
+end
+
+to-report cooperation-rate
+  if total-interactions = 0 [ report 0 ]
+  report 100 * cooperation-count / total-interactions
+end
+
+to-report avg-payoff-equity
+  if not any? turtles with [norm-type = "equity"] [ report 0 ]
+  report mean [my-payoff] of turtles with [norm-type = "equity"]
+end
+
+to-report avg-payoff-equality
+  if not any? turtles with [norm-type = "equality"] [ report 0 ]
+  report mean [my-payoff] of turtles with [norm-type = "equality"]
+end
+
+to-report avg-reputation
+  if count turtles = 0 [ report 0 ]
+  report mean [reputation-score] of turtles
+end]]></code>
+  <widgets>
+    <view x="210" wrappingAllowedX="true" y="10" frameRate="30.0" minPycor="-16" height="434" showTickCounter="true" patchSize="13.0" fontSize="10" wrappingAllowedY="true" width="434" tickCounterLabel="ticks" maxPycor="16" updateMode="0" maxPxcor="16" minPxcor="-16"></view>
+    <button x="15" y="15" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="75" display="setup">setup</button>
+    <button x="95" y="15" height="40" disableUntilTicks="false" forever="true" kind="Observer" width="75" display="go">go</button>
+    <slider x="15" step="10" y="67" max="200" width="190" display="num-agents" height="50" min="10" direction="Horizontal" default="100.0" variable="num-agents"></slider>
+    <slider x="15" step="5" y="124" max="100" width="190" display="pct-equity-agents" height="50" min="0" direction="Horizontal" default="50.0" variable="pct-equity-agents" units="%"></slider>
+    <slider x="15" step="0.1" y="181" max="1" width="190" display="effort-inequality" height="50" min="0" direction="Horizontal" default="0.5" variable="effort-inequality"></slider>
+    <slider x="15" step="0.05" y="238" max="1" width="190" display="tolerance-threshold" height="50" min="0" direction="Horizontal" default="0.3" variable="tolerance-threshold"></slider>
+    <slider x="15" step="100" y="335" max="5000" width="190" display="max-ticks" height="50" min="100" direction="Horizontal" default="1000.0" variable="max-ticks"></slider>
+    <switch x="15" y="412" height="40" on="true" variable="norm-learning?" width="190" display="norm-learning?"></switch>
+    <switch x="15" y="459" height="40" on="false" variable="reputation?" width="190" display="reputation?"></switch>
+    <switch x="15" y="506" height="40" on="false" variable="conformity-pressure?" width="190" display="conformity-pressure?"></switch>
+    <plot x="1010" autoPlotX="true" yMax="200.0" autoPlotY="true" yAxis="count" y="10" xMin="0.0" height="192" legend="true" xMax="100.0" yMin="0.0" width="250" xAxis="ticks" display="Living Agents">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="alive" color="-13345367" legend="true">
+        <setup></setup>
+        <update>plot count turtles</update>
+      </pen>
+    </plot>
+    <monitor x="224" precision="1" y="453" height="60" fontSize="11" width="170" display="Cooperation Rate (%)">cooperation-rate</monitor>
+    <monitor x="420" precision="1" y="451" height="60" fontSize="11" width="170" display="% Equity Agents">pct-equity-now</monitor>
+    <plot x="650" autoPlotX="true" yMax="100.0" autoPlotY="true" yAxis="% agents" y="10" xMin="0.0" height="192" legend="true" xMax="100.0" yMin="0.0" width="340" xAxis="ticks" display="Norm Distribution">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="equity" color="-11221820" legend="true">
+        <setup></setup>
+        <update>plot pct-equity-now</update>
+      </pen>
+      <pen interval="1.0" mode="0" display="equality" color="-955883" legend="true">
+        <setup></setup>
+        <update>plot 100 - pct-equity-now</update>
+      </pen>
+    </plot>
+    <plot x="661" autoPlotX="true" yMax="100.0" autoPlotY="true" yAxis="%" y="217" xMin="0.0" height="192" legend="true" xMax="100.0" yMin="0.0" width="340" xAxis="ticks" display="Conflict and Cooperation">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="conflict" color="-2674135" legend="true">
+        <setup></setup>
+        <update>plot conflict-rate</update>
+      </pen>
+      <pen interval="1.0" mode="0" display="cooperation" color="-13840069" legend="true">
+        <setup></setup>
+        <update>plot cooperation-rate</update>
+      </pen>
+    </plot>
+  </widgets>
+  <info><![CDATA[## NORMATIVE CONFLICT
+
+This agent-based model studies **normative conflict** between two fairness rules in repeated Ultimatum Game interactions:
+
+- **Equity**: payoffs should be proportional to contribution.
+- **Equality**: payoffs should be split 50/50.
+
+Agents move in space, meet local partners, make offers, accept or reject offers, and may later change their norm. Conflict emerges when the offer that seems fair to one side violates the fairness expectation of the other side.
+
+### How the model works
+
+Each agent has:
+
+- a norm: `equity` or `equality`
+- an `effort` level that determines contribution
+- a `commitment` level that affects tolerance and conformity
+- a `reputation-score`
+- a payoff measure used for learning and display
+
+In each tick:
+
+1. agents find a nearby partner
+2. they play an Ultimatum Game
+3. optional shocks and poverty-based exit may occur
+4. agents may update their norm through learning or conformity
+5. agents move to a new position
+
+### Decision rules
+
+Offer rule:
+
+- Equity proposers offer a contribution-proportional share.
+- Equality proposers offer half of the joint output.
+
+Acceptance rule:
+
+- Responders compare the actual offer to the share their own norm considers fair.
+- Offers are accepted if the deviation is small enough.
+- Tolerance depends on `tolerance-threshold`, individual `commitment`, and optionally `reputation?`.
+
+### Norm change
+
+The model contains two different social mechanisms:
+
+- `norm-learning?`: agents compare themselves to the local average payoff of equity and equality neighbors and may switch to the more successful norm.
+- `conformity-pressure?`: agents may switch to the local majority norm even if it is not materially superior.
+
+This distinction matters:
+
+- learning follows **success**
+- conformity follows **frequency**
+
+### Key parameters
+
+The most important parameters for substantive experiments are:
+
+- `pct-equity-agents`: initial balance between the two norms
+- `effort-inequality`: how unequal contributions are
+- `tolerance-threshold`: how easily norm differences turn into rejection
+- `norm-learning?`: whether agents adapt to locally more successful norms
+- `conformity-pressure?`: whether agents adapt to locally more common norms
+- `reputation?`: whether a good reputation makes offers easier to accept
+
+Additional controls exist for shocks, death, effort adaptation, and payoff accumulation, but these are secondary compared to the parameters above.
+In the current classroom version, these secondary mechanisms are fixed internally rather than exposed as interface controls.
+Fixed defaults: interaction radius `3`, social radius `5`, norm update rate `0.1`, shock probability `0.05`, shock loss `2`, death threshold `-5`, effort adaptation on, payoff accumulation on.
+
+### Reading the outputs
+
+- `% Equity Agents`: current share of equity agents
+- `Conflict Rate (%)`: share of rejected interactions
+- `Cooperation Rate (%)`: share of accepted interactions
+- `Avg Payoff Equity` / `Avg Payoff Equality`: mean payoff by norm type
+- `Living Agents`: number of agents still alive
+
+Visual coding:
+
+- **cyan** = equity
+- **orange** = equality
+- **size** = relative payoff success
+
+### Things to try
+
+1. Start with `pct-equity-agents = 50` and vary only `effort-inequality`. Check when equality can still survive.
+2. Hold inequality constant and vary `tolerance-threshold`. Lower tolerance should increase conflict.
+3. Compare runs with `norm-learning?` on and off. This isolates payoff-based selection.
+4. Compare runs with `conformity-pressure?` on and off. This isolates majority pressure.
+5. Run the same parameter setting several times. The model is path-dependent, so single runs can be misleading.
+6. Try low inequality plus strong conformity, then high inequality plus no conformity. This is a useful contrast between equality-friendly and equity-friendly environments.
+7. Turn `reputation?` on and off to see whether trust dampens conflict.
+
+### Interpretation
+
+The model is designed to show **mechanisms**, not exact empirical prediction. It is especially useful for asking when conflicting fairness principles can coexist, when they generate persistent conflict, and when one norm becomes dominant.
+
+### References
+
+- Winter, F., Rauhut, H. & Helbing, D. (2012). *How Norms Can Generate Conflict: An Experiment on the Failure of Cooperative Micro-motives on the Macro-level*. Social Forces, 90(3), 919-946.
+- Rauhut, H. & Winter, F. (2017). *Types of Normative Conflicts and the Effectiveness of Punishment*. In B. Jann & W. Przepiorka (Eds.), *Social dilemmas, institutions, and the evolution of cooperation* (pp. 239-258). De Gruyter Oldenbourg.
+- Winter, F., Rauhut, H. & Miller, L. (2018). *Dynamic Bargaining and Normative Conflict*. Journal of Behavioral and Experimental Economics, 74, 112-126.]]></info>
+  <turtleShapes>
+    <shape name="default" rotatable="true" editableColorIndex="0">
+      <polygon color="-1920102913" filled="true" marked="true">
+        <point x="150" y="5"></point>
+        <point x="40" y="250"></point>
+        <point x="150" y="205"></point>
+        <point x="260" y="250"></point>
+      </polygon>
+    </shape>
+  </turtleShapes>
+  <linkShapes>
+    <shape name="default" curviness="0.0">
+      <lines>
+        <line x="-0.2" visible="false">
+          <dash value="0.0"></dash>
+          <dash value="1.0"></dash>
+        </line>
+        <line x="0.0" visible="true">
+          <dash value="1.0"></dash>
+          <dash value="0.0"></dash>
+        </line>
+        <line x="0.2" visible="false">
+          <dash value="0.0"></dash>
+          <dash value="1.0"></dash>
+        </line>
+      </lines>
+      <indicator>
+        <shape name="link direction" rotatable="true" editableColorIndex="0">
+          <line endX="90" startY="150" marked="true" color="-1920102913" endY="180" startX="150"></line>
+          <line endX="210" startY="150" marked="true" color="-1920102913" endY="180" startX="150"></line>
+        </shape>
+      </indicator>
+    </shape>
+  </linkShapes>
+  <previewCommands>setup repeat 75 [ go ]</previewCommands>
+</model>
